@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>shoot the aarohan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-pill" id="hud-level">Level 1 / 50</div>
+      <div class="hud-pill" id="hud-score"> 0</div>
+      <div class="hud-pill" id="hud-lives"> x3</div>
+      <button id="hud-sound" class="hud-icon-btn" title="Toggle sound effects"></button>
+      <button id="hud-music" class="hud-icon-btn" title="Toggle music">music</button>
+    </div>
+
+    <!-- Game stage -->
+    <div id="stage">
+      <canvas id="game-canvas" width="800" height="600"></canvas>
+
+      <!-- Start screen -->
+      <div class="overlay" id="screen-start">
+        <div class="panel">
+          <h1>Shoot the Aarohan</h1>
+          <p class="sub">Shoot aarohan through 50 levels</p>
+          <ul class="how-to">
+            <li> Move mouse (or ◀ ▶ keys) to slide the paddle</li>
+            <li> Click / press Space to launch the ball(s)</li>
+            <li>Clear every brick to advance a level</li>
+            <li>Levels 40–50 are brutal. Good luck.</li>
+          </ul>
+          <button class="btn btn-primary" id="btn-start">Let's Play</button>
+        </div>
+      </div>
+
+      <!-- Level intro screen -->
+      <div class="overlay hidden" id="screen-level-intro">
+        <div class="panel">
+          <h2 id="level-intro-title">Level 1</h2>
+          <p class="sub" id="level-intro-sub">Bricks: 24 · Balls: 1</p>
+          <button class="btn btn-primary" id="btn-level-continue">Go!</button>
+        </div>
+      </div>
+
+      <!-- Level failed (lost all balls) -->
+      <div class="overlay hidden" id="screen-retry">
+        <div class="panel">
+          <h2>Oops! Kaboom</h2>
+          <p class="sub">All your aarohans popped. Try this level again!</p>
+          <button class="btn btn-primary" id="btn-retry">Retry Level</button>
+        </div>
+      </div>
+
+      <!-- Final win screen -->
+      <div class="overlay hidden" id="screen-win">
+        <div class="panel panel-win">
+          <h1>You did it!</h1>
+          <p class="sub">All 50 levels cleared. Here's your reward:</p>
+          <div id="secret-message"></div>
+          <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+        </div>
+      </div>
+
+      <!-- Pause screen -->
+      <div class="overlay hidden" id="screen-pause">
+        <div class="panel">
+          <h2>Paused</h2>
+          <button class="btn btn-primary" id="btn-resume">Resume</button>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="footer-note">Press <kbd>Esc</kbd> to pause</p>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
