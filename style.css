@@ -33,6 +33,7 @@ body {
   color: var(--text-dark);
   position: relative;
   overflow-x: hidden;
+  touch-action: pan-y;
 }
 
 /* pixel "grass horizon" strip along the bottom of the page */
@@ -60,6 +61,8 @@ body::before {
   align-items: center;
   gap: 14px;
   padding: 20px;
+  width: 100%;
+  max-width: 840px;
 }
 
 /* ---------- HUD ---------- */
@@ -117,10 +120,16 @@ body::before {
     0 0 0 10px var(--stone-dark),
     0 18px 0 0 rgba(0, 0, 0, 0.25);
   background: #000;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 800 / 600;
 }
 
 #game-canvas {
   display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* let our own drag handling own touch, no page scroll/zoom */
   background: radial-gradient(circle at 50% 0%, #EAF6FF 0%, #CDE7FF 100%);
 }
 
@@ -256,4 +265,33 @@ body::before {
   padding: 2px 8px;
   font-family: 'Press Start 2P', monospace;
   font-size: 11px;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 520px) {
+  #app { padding: 10px; gap: 8px; }
+
+  .hud-pill {
+    font-size: 9px;
+    padding: 6px 10px;
+  }
+  .hud-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .panel {
+    padding: 22px 18px;
+    max-width: 92vw;
+  }
+  .panel h1 { font-size: 16px; }
+  .panel h2 { font-size: 14px; }
+  .sub { font-size: 16px; }
+  .how-to { font-size: 15px; padding: 10px 12px; }
+  .btn { font-size: 11px; padding: 12px 20px; }
+
+  .panel-win #secret-message { font-size: 11px; }
+
+  .footer-note { font-size: 14px; padding: 3px 10px; }
 }

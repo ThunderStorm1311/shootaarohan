@@ -1,9 +1,8 @@
 const CONFIG = {
   CANVAS_W: 800,
   CANVAS_H: 600,
-
-  MAX_LEVEL: 50,
-
+  MAX_BALLS_CAP: 6,
+  MAX_LEVEL: 8,
   BALL_IMAGES: [
     "./assets/aarohan1.jpeg",
     "./assets/aaroahan2.jpg",
@@ -18,77 +17,76 @@ const CONFIG = {
     "./assets/aarohan11.jpg",
     "./assets/aarohan12.jpg",
     "./assets/aarohan17.jpg",
+
   ],
 
-  BALL_RADIUS: 32,      
-  BASE_BALL_SPEED: 4.2,
-  MAX_BALL_SPEED: 8.5,
+  RARE_BALL_IMAGE: './assets/divjot.png',
+  RARE_BALL_CHANCE: 0.15, 
+
+  BALL_RADIUS: 32,          
+  BASE_BALL_SPEED: 4.6,
+  MAX_BALL_SPEED: 9.5,
+  BALL_SPEED_PER_LEVEL: 0.55, 
 
   PADDLE_WIDTH: 112,
   PADDLE_HEIGHT: 18,
   PADDLE_SPEED_KEY: 9,
+  PADDLE_MIN_WIDTH: 46,
+  PADDLE_SHRINK_START_LEVEL: 4,
+  PADDLE_SHRINK_PER_LEVEL: 16,
 
   BRICK_COLS: 8,
   BRICK_GAP: 6,
   BRICK_TOP_OFFSET: 70,
   BRICK_HEIGHT: 26,
-
-  BALL_LEVEL_STEP: 4,
-  MAX_BALLS_CAP: 10,
-
+  BRICK_HP_EASY: [1, 2, 3],      
+  BRICK_HP_HARD_BASE: 14,         
+  BRICK_HP_HARD_STEP: 8,          
   STARTING_LIVES: 3,
-
   MUSIC_TRACK: './music/Bad Piggy.mp3',
   MUSIC_VOLUME: 0.35,
-
-
-  SECRET_MESSAGE_BASE64: 'UExBQ0UgUkVQTEFDRSBNRSB3aXRoIHlvdXIgb3duIHNlY3JldCBtZXNzYWdlIQ=='
+  CORNER_MARK_SEQUENCE: 'G;y"FFfd',
+  WIN_MESSAGE: 'TYPE SHIT! KEEP POPPING THE AAROHANS!'
 };
-
 const rand = (min, max) => Math.random() * (max - min) + min;
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-function decodeSecret(b64) {
-  try {
-    return decodeURIComponent(escape(atob(b64)));
-  } catch (e) {
-    return '(secret message could not be decoded)';
-  }
-}
 
 function bricksForLevel(level) {
-  return clamp(3 + Math.floor(level / 6), 3, 10);
+  return clamp(4 + level, 4, 10);
 }
 
 function brickHpForLevel(level) {
-  if (level <= 39) {
-    return 1 + Math.floor((level - 1) / 3);   
-  }
-  const base = 1 + Math.floor(38 / 3);         
-  return base + (level - 39) * 3;             
+  if (level <= 3) return CONFIG.BRICK_HP_EASY[level - 1];
+  return CONFIG.BRICK_HP_HARD_BASE + (level - 4) * CONFIG.BRICK_HP_HARD_STEP;
 }
 
 function ballDamageForLevel(level) {
-  if (level >= 45) return 3;
-  if (level >= 25) return 2;
+  if (level >= 8) return 3;
+  if (level >= 6) return 2;
   return 1;
 }
 
 function ballCountForLevel(level) {
-  const extra = Math.floor((level - 1) / CONFIG.BALL_LEVEL_STEP);
-  return clamp(1 + extra, 1, CONFIG.MAX_BALLS_CAP);
+  return clamp(level, 1, CONFIG.MAX_BALLS_CAP);
 }
 
 function ballSpeedForLevel(level) {
-  const speed = CONFIG.BASE_BALL_SPEED + level * 0.06;
+  const speed = CONFIG.BASE_BALL_SPEED + (level - 1) * CONFIG.BALL_SPEED_PER_LEVEL;
   return clamp(speed, CONFIG.BASE_BALL_SPEED, CONFIG.MAX_BALL_SPEED);
+}
+
+function paddleWidthForLevel(level) {
+  if (level < CONFIG.PADDLE_SHRINK_START_LEVEL) return CONFIG.PADDLE_WIDTH;
+  const shrinkSteps = level - CONFIG.PADDLE_SHRINK_START_LEVEL + 1;
+  const width = CONFIG.PADDLE_WIDTH - shrinkSteps * CONFIG.PADDLE_SHRINK_PER_LEVEL;
+  return clamp(width, CONFIG.PADDLE_MIN_WIDTH, CONFIG.PADDLE_WIDTH);
 }
 
 function brickColorForRow(row, level) {
   const hue = (row * 42 + level * 5) % 360;
   return `hsl(${hue}, 78%, 78%)`;
 }
-
 class Paddle {
   constructor() {
     this.w = CONFIG.PADDLE_WIDTH;
@@ -213,6 +211,11 @@ class Game {
       img.src = src;
       return img;
     });
+    this.rareImage = null;
+    if (CONFIG.RARE_BALL_IMAGE) {
+      this.rareImage = new Image();
+      this.rareImage.src = CONFIG.RARE_BALL_IMAGE;
+    }
     this.shotIndex = 0; 
 
     this.paddle = new Paddle();
@@ -241,11 +244,13 @@ class Game {
   }
 
   nextBallImage() {
+    if (this.rareImage && Math.random() < CONFIG.RARE_BALL_CHANCE) {
+      return this.rareImage;
+    }
     const img = this.images[this.shotIndex % this.images.length];
     this.shotIndex++;
     return img;
   }
-
   _cycleBallImage(ball) {
     ball.image = this.nextBallImage();
   }
@@ -283,6 +288,22 @@ class Game {
       this.mouseX = (e.clientX - rect.left) * scale;
     });
     window.addEventListener('click', () => this._launchStuckBalls());
+
+    const updateFromTouch = (touch) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const scale = CONFIG.CANVAS_W / rect.width;
+      this.mouseX = (touch.clientX - rect.left) * scale;
+    };
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault(); 
+      updateFromTouch(e.touches[0]);
+      this._launchStuckBalls();
+    }, { passive: false });
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      updateFromTouch(e.touches[0]);
+    }, { passive: false });
+
     window.addEventListener('keydown', (e) => {
       if (e.code === 'ArrowLeft') this.keys.left = true;
       if (e.code === 'ArrowRight') this.keys.right = true;
@@ -319,6 +340,8 @@ class Game {
   startLevel(level, isFirstEver) {
     this.level = level;
     this.paddle.reset();
+    this.paddle.w = paddleWidthForLevel(level);
+    this.paddle.x = (CONFIG.CANVAS_W - this.paddle.w) / 2;
     this.balls = [];
     this._buildBricks(level);
 
@@ -382,8 +405,8 @@ class Game {
 
   updateHud() {
     document.getElementById('hud-level').textContent = `Level ${this.level} / ${CONFIG.MAX_LEVEL}`;
-    document.getElementById('hud-score').textContent = ` ${this.score}`;
-    document.getElementById('hud-lives').textContent = ` x${this.lives}`;
+    document.getElementById('hud-score').textContent = `⭐ ${this.score}`;
+    document.getElementById('hud-lives').textContent = `💗 x${this.lives}`;
   }
   _loop(timestamp) {
     requestAnimationFrame((t) => this._loop(t));
@@ -409,12 +432,10 @@ class Game {
       ball.x += ball.vx;
       ball.y += ball.vy;
 
-     
       if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx *= -1; this._cycleBallImage(ball); }
       if (ball.x + ball.r > CONFIG.CANVAS_W) { ball.x = CONFIG.CANVAS_W - ball.r; ball.vx *= -1; this._cycleBallImage(ball); }
       if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; this._cycleBallImage(ball); }
 
-      
       if (ball.vy > 0 &&
           ball.y + ball.r >= this.paddle.y &&
           ball.y + ball.r <= this.paddle.y + this.paddle.h + 10 &&
@@ -429,7 +450,6 @@ class Game {
         this._audio.blip(320);
       }
 
-      
       for (const brick of this.bricks) {
         if (!brick.alive) continue;
         if (ball.x + ball.r > brick.x && ball.x - ball.r < brick.x + brick.w &&
@@ -450,7 +470,6 @@ class Game {
         }
       }
 
-      
       if (ball.y - ball.r > CONFIG.CANVAS_H) {
         ballsLost++;
       }
@@ -462,14 +481,12 @@ class Game {
 
     this.updateHud();
 
-   
     if (this.balls.length === 0) {
       this.running = false;
       this.showScreen('screen-retry');
       return;
     }
 
-    
     if (this.bricks.every(b => !b.alive)) {
       this.running = false;
       this.score += 100 * this.level;
@@ -482,16 +499,14 @@ class Game {
   }
 
   _showWin() {
-    const msg = decodeSecret(CONFIG.SECRET_MESSAGE_BASE64);
-    document.getElementById('secret-message').textContent = msg;
     this.showScreen('screen-win');
+    document.getElementById('secret-message').textContent = CONFIG.WIN_MESSAGE;
   }
 
   _draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, CONFIG.CANVAS_W, CONFIG.CANVAS_H);
 
-    
     ctx.save();
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     for (let x = 20; x < CONFIG.CANVAS_W; x += 40) {
@@ -506,6 +521,22 @@ class Game {
     this.bricks.forEach(b => b.draw(ctx));
     this.paddle.draw(ctx);
     this.balls.forEach(b => b.draw(ctx));
+
+    this._drawCornerMark(ctx);
+  }
+
+  _drawCornerMark(ctx) {
+    const ch = (CONFIG.CORNER_MARK_SEQUENCE || '')[this.level - 1];
+    if (!ch || ch === ' ') return;
+    const dotX = Math.floor((CONFIG.CANVAS_W - 20) / 40) * 40 + 20;
+    const dotY = Math.floor((CONFIG.CANVAS_H - 20) / 40) * 40 + 20;
+    ctx.save();
+    ctx.font = "6px 'Nunito', sans-serif";
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ch, dotX, dotY);
+    ctx.restore();
   }
 }
 class AudioFx {
